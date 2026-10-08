@@ -1,14 +1,23 @@
 package com.example.operacionescrud
 
+import android.graphics.Color
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
+import android.view.Gravity
+import android.view.LayoutInflater
+import android.view.View
 import android.widget.Button
 import android.widget.EditText
 import android.widget.LinearLayout
+import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.ComponentActivity
+import androidx.activity.SystemBarStyle
+import androidx.activity.enableEdgeToEdge
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.lifecycleScope
 import com.google.firebase.firestore.ListenerRegistration
 import kotlinx.coroutines.launch
@@ -21,8 +30,26 @@ class MainActivity : ComponentActivity() {
     private var firestoreListener: ListenerRegistration? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        enableEdgeToEdge(statusBarStyle = SystemBarStyle.dark(Color.TRANSPARENT))
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+
+        // Respeta la barra de estado, la de navegación y el teclado
+        val header = findViewById<View>(R.id.header)
+        val svMain = findViewById<ScrollView>(R.id.svMain)
+        val headerPadTop = header.paddingTop
+        ViewCompat.setOnApplyWindowInsetsListener(findViewById<View>(R.id.root)) { _, insets ->
+            val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            val ime = insets.getInsets(WindowInsetsCompat.Type.ime())
+            header.setPadding(
+                header.paddingLeft,
+                headerPadTop + bars.top,
+                header.paddingRight,
+                header.paddingBottom,
+            )
+            svMain.setPadding(0, 0, 0, maxOf(bars.bottom, ime.bottom))
+            insets
+        }
 
         val dao = AppDatabase.getDatabase(this).productoDao()
         repository = InventarioRepository(dao)
@@ -37,45 +64,62 @@ class MainActivity : ComponentActivity() {
         val btnActualizar = findViewById<Button>(R.id.btnActualizar)
         val btnEliminar = findViewById<Button>(R.id.btnEliminar)
         val containerInventario = findViewById<LinearLayout>(R.id.containerInventario)
+        val tvFormTitulo = findViewById<TextView>(R.id.tvFormTitulo)
+        val tvContador = findViewById<TextView>(R.id.tvContador)
+
+        fun marcarSeleccion() {
+            val idSel = productoSeleccionado?.id
+            for (i in 0 until containerInventario.childCount) {
+                val v = containerInventario.getChildAt(i)
+                v.isActivated = idSel != null && v.tag == idSel
+            }
+            tvFormTitulo.text = productoSeleccionado?.let {
+                getString(R.string.titulo_editando, it.nombre)
+            } ?: getString(R.string.titulo_nuevo)
+        }
 
         fun mostrarProductos(productos: List<Producto>) {
             containerInventario.removeAllViews()
+            tvContador.text = getString(R.string.contador_productos, productos.size)
             if (productos.isEmpty()) {
                 val tvVacio = TextView(this@MainActivity).apply {
                     text = getString(R.string.text_sin_resultados)
-                    textSize = 16f
-                    setPadding(16, 16, 16, 16)
+                    textSize = 15f
+                    setTextColor(getColor(R.color.text_secondary))
+                    setPadding(16, 24, 16, 24)
+                    gravity = Gravity.CENTER
                 }
                 containerInventario.addView(tvVacio)
             } else {
+                val inflater = LayoutInflater.from(this@MainActivity)
                 productos.forEach { p ->
-                    val itemView = TextView(this@MainActivity).apply {
-                        text = getString(
-                            R.string.item_producto_format,
-                            p.nombre,
-                            p.cantidad,
-                            p.precio,
-                            p.proveedor,
-                            p.descripcion,
-                        )
-                        textSize = 15f
-                        setPadding(16, 16, 16, 16)
-                        isClickable = true
-                        isFocusable = true
-                        setBackgroundResource(android.R.drawable.list_selector_background)
+                    val itemView = inflater.inflate(R.layout.item_producto, containerInventario, false)
+                    itemView.tag = p.id
+                    itemView.findViewById<TextView>(R.id.tvItemNombre).text = p.nombre
+                    itemView.findViewById<TextView>(R.id.tvItemPrecio).text =
+                        getString(R.string.item_precio, p.precio)
+                    itemView.findViewById<TextView>(R.id.tvItemDescripcion).text =
+                        p.descripcion.ifBlank { getString(R.string.item_sin_descripcion) }
+                    itemView.findViewById<TextView>(R.id.tvItemCantidad).text =
+                        getString(R.string.item_cantidad, p.cantidad)
+                    itemView.findViewById<TextView>(R.id.tvItemProveedor).text =
+                        if (p.proveedor.isBlank()) getString(R.string.item_sin_proveedor)
+                        else getString(R.string.item_proveedor, p.proveedor)
 
-                        setOnClickListener {
-                            productoSeleccionado = p
-                            etNombre.setText(p.nombre)
-                            etDescripcion.setText(p.descripcion)
-                            etCantidad.setText(p.cantidad.toString())
-                            etPrecio.setText(p.precio.toString())
-                            etProveedor.setText(p.proveedor)
-                            Toast.makeText(this@MainActivity, "Seleccionado: ${p.nombre}", Toast.LENGTH_SHORT).show()
-                        }
+                    itemView.setOnClickListener {
+                        productoSeleccionado = p
+                        etNombre.setText(p.nombre)
+                        etDescripcion.setText(p.descripcion)
+                        etCantidad.setText(p.cantidad.toString())
+                        etPrecio.setText(p.precio.toString())
+                        etProveedor.setText(p.proveedor)
+                        marcarSeleccion()
+                        svMain.smoothScrollTo(0, 0)
+                        Toast.makeText(this@MainActivity, "Seleccionado: ${p.nombre}", Toast.LENGTH_SHORT).show()
                     }
                     containerInventario.addView(itemView)
                 }
+                marcarSeleccion()
             }
         }
 
@@ -118,6 +162,7 @@ class MainActivity : ComponentActivity() {
             etPrecio.text.clear()
             etProveedor.text.clear()
             productoSeleccionado = null
+            marcarSeleccion()
         }
 
         etBuscar.addTextChangedListener(object : TextWatcher {

@@ -9,8 +9,25 @@
     <string name="btn_crear">Crear</string>
     <string name="btn_actualizar">Actualizar</string>
     <string name="btn_eliminar">Eliminar</string>
-    <string name="label_inventario">Inventario:</string>
+    <string name="label_inventario">Inventario</string>
     <string name="text_cargando">Cargando&#8230;</string>
     <string name="text_sin_resultados">No se encontraron productos.</string>
     <string name="item_producto_format">%1$s\nCantidad: %2$d | Precio: $%3$.2f | Prov: %4$s\n%5$s</string>
+
+    <string name="titulo_app">Inventario</string>
+    <string name="subtitulo_app">Gestión de productos en tiempo real</string>
+    <string name="titulo_nuevo">Nuevo producto</string>
+    <string name="titulo_editando">Editando: %1$s</string>
+    <string name="label_precio">Precio ($)</string>
+    <string name="placeholder_nombre">Ej: Teclado mecánico</string>
+    <string name="placeholder_descripcion">Breve detalle del producto</string>
+    <string name="placeholder_cantidad">0</string>
+    <string name="placeholder_precio">0.00</string>
+    <string name="placeholder_proveedor">Nombre del proveedor</string>
+    <string name="contador_productos">%1$d productos</string>
+    <string name="item_cantidad">Cant: %1$d</string>
+    <string name="item_precio">$%1$.2f</string>
+    <string name="item_proveedor">Prov: %1$s</string>
+    <string name="item_sin_descripcion">Sin descripción</string>
+    <string name="item_sin_proveedor">Sin proveedor</string>
 </resources>
