@@ -1,0 +1,174 @@
+package com.example.operacionescrud
+
+import android.os.Bundle
+import android.text.Editable
+import android.text.TextWatcher
+import android.widget.Button
+import android.widget.EditText
+import android.widget.LinearLayout
+import android.widget.TextView
+import android.widget.Toast
+import androidx.activity.ComponentActivity
+import androidx.lifecycle.lifecycleScope
+import com.google.firebase.firestore.ListenerRegistration
+import kotlinx.coroutines.launch
+import java.util.UUID
+
+class MainActivity : ComponentActivity() {
+
+    private lateinit var repository: InventarioRepository
+    private var productoSeleccionado: Producto? = null
+    private var firestoreListener: ListenerRegistration? = null
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_main)
+
+        val dao = AppDatabase.getDatabase(this).productoDao()
+        repository = InventarioRepository(dao)
+
+        val etNombre = findViewById<EditText>(R.id.etNombre)
+        val etDescripcion = findViewById<EditText>(R.id.etDescripcion)
+        val etCantidad = findViewById<EditText>(R.id.etCantidad)
+        val etPrecio = findViewById<EditText>(R.id.etPrecio)
+        val etProveedor = findViewById<EditText>(R.id.etProveedor)
+        val etBuscar = findViewById<EditText>(R.id.etBuscar)
+        val btnCrear = findViewById<Button>(R.id.btnCrear)
+        val btnActualizar = findViewById<Button>(R.id.btnActualizar)
+        val btnEliminar = findViewById<Button>(R.id.btnEliminar)
+        val containerInventario = findViewById<LinearLayout>(R.id.containerInventario)
+
+        fun mostrarProductos(productos: List<Producto>) {
+            containerInventario.removeAllViews()
+            if (productos.isEmpty()) {
+                val tvVacio = TextView(this@MainActivity).apply {
+                    text = getString(R.string.text_sin_resultados)
+                    textSize = 16f
+                    setPadding(16, 16, 16, 16)
+                }
+                containerInventario.addView(tvVacio)
+            } else {
+                productos.forEach { p ->
+                    val itemView = TextView(this@MainActivity).apply {
+                        text = getString(
+                            R.string.item_producto_format,
+                            p.nombre,
+                            p.cantidad,
+                            p.precio,
+                            p.proveedor,
+                            p.descripcion,
+                        )
+                        textSize = 15f
+                        setPadding(16, 16, 16, 16)
+                        isClickable = true
+                        isFocusable = true
+                        setBackgroundResource(android.R.drawable.list_selector_background)
+
+                        setOnClickListener {
+                            productoSeleccionado = p
+                            etNombre.setText(p.nombre)
+                            etDescripcion.setText(p.descripcion)
+                            etCantidad.setText(p.cantidad.toString())
+                            etPrecio.setText(p.precio.toString())
+                            etProveedor.setText(p.proveedor)
+                            Toast.makeText(this@MainActivity, "Seleccionado: ${p.nombre}", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                    containerInventario.addView(itemView)
+                }
+            }
+        }
+
+        fun cargarInventario(query: String = "") {
+            lifecycleScope.launch {
+                val productos = repository.buscar(query)
+                mostrarProductos(productos)
+            }
+        }
+
+        fun obtenerProductoFromInputs(): Producto? {
+            val nombre = etNombre.text.toString().trim()
+            val descripcion = etDescripcion.text.toString().trim()
+            val cantidadStr = etCantidad.text.toString().trim()
+            val precioStr = etPrecio.text.toString().trim()
+            val proveedor = etProveedor.text.toString().trim()
+
+            if (nombre.isEmpty() || cantidadStr.isEmpty() || precioStr.isEmpty()) {
+                Toast.makeText(this, "Completa nombre, cantidad y precio", Toast.LENGTH_SHORT).show()
+                return null
+            }
+
+            val cantidad = cantidadStr.toIntOrNull() ?: 0
+            val precio = precioStr.toDoubleOrNull() ?: 0.0
+
+            return Producto(
+                id = productoSeleccionado?.id ?: UUID.randomUUID().toString(),
+                nombre = nombre,
+                descripcion = descripcion,
+                cantidad = cantidad,
+                precio = precio,
+                proveedor = proveedor,
+            )
+        }
+
+        fun limpiarCampos() {
+            etNombre.text.clear()
+            etDescripcion.text.clear()
+            etCantidad.text.clear()
+            etPrecio.text.clear()
+            etProveedor.text.clear()
+            productoSeleccionado = null
+        }
+
+        etBuscar.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+                cargarInventario(s?.toString().orEmpty())
+            }
+
+            override fun afterTextChanged(s: Editable?) {}
+        })
+
+        btnCrear.setOnClickListener {
+            val producto = obtenerProductoFromInputs() ?: return@setOnClickListener
+            lifecycleScope.launch {
+                repository.crear(producto)
+                limpiarCampos()
+                cargarInventario(etBuscar.text.toString())
+                Toast.makeText(this@MainActivity, "Producto creado", Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        btnActualizar.setOnClickListener {
+            val producto = obtenerProductoFromInputs() ?: return@setOnClickListener
+            lifecycleScope.launch {
+                repository.actualizar(producto)
+                limpiarCampos()
+                cargarInventario(etBuscar.text.toString())
+                Toast.makeText(this@MainActivity, "Producto actualizado", Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        btnEliminar.setOnClickListener {
+            val producto = productoSeleccionado ?: obtenerProductoFromInputs() ?: return@setOnClickListener
+            lifecycleScope.launch {
+                repository.eliminar(producto)
+                limpiarCampos()
+                cargarInventario(etBuscar.text.toString())
+                Toast.makeText(this@MainActivity, "Producto eliminado", Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        cargarInventario()
+
+        // Sincronización en tiempo real desde Cloud Firestore para múltiples usuarios
+        firestoreListener = repository.iniciarEscuchadorTiempoReal {
+            cargarInventario(etBuscar.text.toString())
+        }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        firestoreListener?.remove()
+    }
+}

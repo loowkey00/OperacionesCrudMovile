@@ -1,0 +1,16 @@
+<resources>
+    <string name="app_name">Operaciones crud</string>
+    <string name="hint_nombre">Nombre</string>
+    <string name="hint_descripcion">Descripción</string>
+    <string name="hint_cantidad">Cantidad</string>
+    <string name="hint_precio">Precio</string>
+    <string name="hint_proveedor">Proveedor</string>
+    <string name="hint_buscar">Buscar por nombre o proveedor&#8230;</string>
+    <string name="btn_crear">Crear</string>
+    <string name="btn_actualizar">Actualizar</string>
+    <string name="btn_eliminar">Eliminar</string>
+    <string name="label_inventario">Inventario:</string>
+    <string name="text_cargando">Cargando&#8230;</string>
+    <string name="text_sin_resultados">No se encontraron productos.</string>
+    <string name="item_producto_format">%1$s\nCantidad: %2$d | Precio: $%3$.2f | Prov: %4$s\n%5$s</string>
+</resources>
