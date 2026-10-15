@@ -21,6 +21,14 @@ interface ProductoDao {
     @Query("SELECT * FROM productos WHERE nombre LIKE '%' || :query || '%' OR proveedor LIKE '%' || :query || '%' OR descripcion LIKE '%' || :query || '%'")
     suspend fun buscar(query: String): List<Producto>
 
+    @Query("""
+        SELECT * FROM productos 
+        WHERE (:query = '' OR nombre LIKE '%' || :query || '%' OR proveedor LIKE '%' || :query || '%' OR descripcion LIKE '%' || :query || '%')
+        AND (:minPrecio IS NULL OR precio >= :minPrecio)
+        AND (:maxPrecio IS NULL OR precio <= :maxPrecio)
+    """)
+    suspend fun filtrarProductos(query: String, minPrecio: Double?, maxPrecio: Double?): List<Producto>
+
     @Update
     suspend fun actualizar(producto: Producto)
 

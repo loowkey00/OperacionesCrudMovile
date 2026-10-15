@@ -60,6 +60,9 @@ class MainActivity : ComponentActivity() {
         val etPrecio = findViewById<EditText>(R.id.etPrecio)
         val etProveedor = findViewById<EditText>(R.id.etProveedor)
         val etBuscar = findViewById<EditText>(R.id.etBuscar)
+        val etPrecioMin = findViewById<EditText>(R.id.etPrecioMin)
+        val etPrecioMax = findViewById<EditText>(R.id.etPrecioMax)
+        val btnLimpiarFiltro = findViewById<Button>(R.id.btnLimpiarFiltro)
         val btnCrear = findViewById<Button>(R.id.btnCrear)
         val btnActualizar = findViewById<Button>(R.id.btnActualizar)
         val btnEliminar = findViewById<Button>(R.id.btnEliminar)
@@ -123,9 +126,13 @@ class MainActivity : ComponentActivity() {
             }
         }
 
-        fun cargarInventario(query: String = "") {
+        fun cargarInventario() {
+            val query = etBuscar.text.toString().trim()
+            val minPrecio = etPrecioMin.text.toString().trim().toDoubleOrNull()
+            val maxPrecio = etPrecioMax.text.toString().trim().toDoubleOrNull()
+
             lifecycleScope.launch {
-                val productos = repository.buscar(query)
+                val productos = repository.filtrar(query, minPrecio, maxPrecio)
                 mostrarProductos(productos)
             }
         }
@@ -165,21 +172,31 @@ class MainActivity : ComponentActivity() {
             marcarSeleccion()
         }
 
-        etBuscar.addTextChangedListener(object : TextWatcher {
+        val filtroWatcher = object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
-                cargarInventario(s?.toString().orEmpty())
+                cargarInventario()
             }
-
             override fun afterTextChanged(s: Editable?) {}
-        })
+        }
+
+        etBuscar.addTextChangedListener(filtroWatcher)
+        etPrecioMin.addTextChangedListener(filtroWatcher)
+        etPrecioMax.addTextChangedListener(filtroWatcher)
+
+        btnLimpiarFiltro.setOnClickListener {
+            etBuscar.text.clear()
+            etPrecioMin.text.clear()
+            etPrecioMax.text.clear()
+            cargarInventario()
+        }
 
         btnCrear.setOnClickListener {
             val producto = obtenerProductoFromInputs() ?: return@setOnClickListener
             lifecycleScope.launch {
                 repository.crear(producto)
                 limpiarCampos()
-                cargarInventario(etBuscar.text.toString())
+                cargarInventario()
                 Toast.makeText(this@MainActivity, "Producto creado", Toast.LENGTH_SHORT).show()
             }
         }
@@ -189,7 +206,7 @@ class MainActivity : ComponentActivity() {
             lifecycleScope.launch {
                 repository.actualizar(producto)
                 limpiarCampos()
-                cargarInventario(etBuscar.text.toString())
+                cargarInventario()
                 Toast.makeText(this@MainActivity, "Producto actualizado", Toast.LENGTH_SHORT).show()
             }
         }
@@ -199,7 +216,7 @@ class MainActivity : ComponentActivity() {
             lifecycleScope.launch {
                 repository.eliminar(producto)
                 limpiarCampos()
-                cargarInventario(etBuscar.text.toString())
+                cargarInventario()
                 Toast.makeText(this@MainActivity, "Producto eliminado", Toast.LENGTH_SHORT).show()
             }
         }
@@ -208,7 +225,7 @@ class MainActivity : ComponentActivity() {
 
         // Sincronización en tiempo real desde Cloud Firestore para múltiples usuarios
         firestoreListener = repository.iniciarEscuchadorTiempoReal {
-            cargarInventario(etBuscar.text.toString())
+            cargarInventario()
         }
     }
 

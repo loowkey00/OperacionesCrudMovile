@@ -29,6 +29,10 @@ class InventarioRepository(private val dao: ProductoDao) {
         }
     }
 
+    suspend fun filtrar(query: String, minPrecio: Double?, maxPrecio: Double?): List<Producto> = withContext(Dispatchers.IO) {
+        return@withContext dao.filtrarProductos(query.trim(), minPrecio, maxPrecio)
+    }
+
     suspend fun actualizar(producto: Producto): Unit = withContext(Dispatchers.IO) {
         dao.actualizar(producto)
         coleccion.document(producto.id).set(producto).await()
