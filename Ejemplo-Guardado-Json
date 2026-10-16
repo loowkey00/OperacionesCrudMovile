@@ -1,0 +1,30 @@
+
+//En este archivo se muestra  como se guardaria los datos
+en el archivo JSON que se crea en el celular del usuario//
+
+[
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440000",
+    "nombre": "Smart TV LG 55 pulgadas",
+    "descripcion": "Televisor OLED 4K con WebOS",
+    "cantidad": 12,
+    "precio": 450000.0,
+    "proveedor": "LG Electronics Chile"
+  },
+  {
+    "id": "784e8400-e29b-41d4-a716-446655441111",
+    "nombre": "Notebook ASUS ROG Strix",
+    "descripcion": "Laptop gamer 16GB RAM, RTX 4060, 1TB SSD",
+    "cantidad": 5,
+    "precio": 1250000.0,
+    "proveedor": "ASUS Latam"
+  },
+  {
+    "id": "c3b2a199-d8c7-4321-a716-998877665544",
+    "nombre": "Audífonos Sony WH-1000XM5",
+    "descripcion": "Audífonos inalámbricos con cancelación de ruido activa",
+    "cantidad": 25,
+    "precio": 299990.0,
+    "proveedor": "Sony Audio"
+  }
+]
