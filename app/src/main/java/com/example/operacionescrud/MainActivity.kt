@@ -51,7 +51,7 @@ class MainActivity : ComponentActivity() {
             insets
         }
 
-        val dao = AppDatabase.getDatabase(this).productoDao()
+        val dao = InventarioDatabase.getDatabase(this).productoDao()
         repository = InventarioRepository(dao)
 
         val etNombre = findViewById<EditText>(R.id.etNombre)
@@ -132,8 +132,10 @@ class MainActivity : ComponentActivity() {
             val maxPrecio = etPrecioMax.text.toString().trim().toDoubleOrNull()
 
             lifecycleScope.launch {
-                val productos = repository.filtrar(query, minPrecio, maxPrecio)
-                mostrarProductos(productos)
+                when (val res = repository.filtrar(query, minPrecio, maxPrecio)) {
+                    is Resource.Success -> mostrarProductos(res.data)
+                    is Resource.Error -> Toast.makeText(this@MainActivity, res.message, Toast.LENGTH_SHORT).show()
+                }
             }
         }
 
@@ -194,37 +196,49 @@ class MainActivity : ComponentActivity() {
         btnCrear.setOnClickListener {
             val producto = obtenerProductoFromInputs() ?: return@setOnClickListener
             lifecycleScope.launch {
-                repository.crear(producto)
-                limpiarCampos()
-                cargarInventario()
-                Toast.makeText(this@MainActivity, "Producto creado", Toast.LENGTH_SHORT).show()
+                when (val res = repository.crear(producto)) {
+                    is Resource.Success -> {
+                        limpiarCampos()
+                        cargarInventario()
+                        Toast.makeText(this@MainActivity, "Producto creado", Toast.LENGTH_SHORT).show()
+                    }
+                    is Resource.Error -> Toast.makeText(this@MainActivity, res.message, Toast.LENGTH_SHORT).show()
+                }
             }
         }
 
         btnActualizar.setOnClickListener {
             val producto = obtenerProductoFromInputs() ?: return@setOnClickListener
             lifecycleScope.launch {
-                repository.actualizar(producto)
-                limpiarCampos()
-                cargarInventario()
-                Toast.makeText(this@MainActivity, "Producto actualizado", Toast.LENGTH_SHORT).show()
+                when (val res = repository.actualizar(producto)) {
+                    is Resource.Success -> {
+                        limpiarCampos()
+                        cargarInventario()
+                        Toast.makeText(this@MainActivity, "Producto actualizado", Toast.LENGTH_SHORT).show()
+                    }
+                    is Resource.Error -> Toast.makeText(this@MainActivity, res.message, Toast.LENGTH_SHORT).show()
+                }
             }
         }
 
         btnEliminar.setOnClickListener {
             val producto = productoSeleccionado ?: obtenerProductoFromInputs() ?: return@setOnClickListener
             lifecycleScope.launch {
-                repository.eliminar(producto)
-                limpiarCampos()
-                cargarInventario()
-                Toast.makeText(this@MainActivity, "Producto eliminado", Toast.LENGTH_SHORT).show()
+                when (val res = repository.eliminar(producto)) {
+                    is Resource.Success -> {
+                        limpiarCampos()
+                        cargarInventario()
+                        Toast.makeText(this@MainActivity, "Producto eliminado", Toast.LENGTH_SHORT).show()
+                    }
+                    is Resource.Error -> Toast.makeText(this@MainActivity, res.message, Toast.LENGTH_SHORT).show()
+                }
             }
         }
 
         cargarInventario()
 
         // Sincronización en tiempo real desde Cloud Firestore para múltiples usuarios
-        firestoreListener = repository.iniciarEscuchadorTiempoReal {
+        firestoreListener = repository.observarCambiosNube {
             cargarInventario()
         }
     }

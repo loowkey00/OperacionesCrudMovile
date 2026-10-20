@@ -62,4 +62,8 @@ dependencies {
 
     // Corrutinas
     implementation(libs.kotlinx.coroutines.android)
+
+    // Retrofit + Gson (Interoperabilidad REST con Firestore)
+    implementation(libs.retrofit)
+    implementation(libs.retrofit.converter.gson)
 }
